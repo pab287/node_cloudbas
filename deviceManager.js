@@ -169,8 +169,13 @@ class DeviceManager extends EventEmitter {
     }
 
     // Sort newest → oldest
+    //allRecords.sort((a, b) => b._ts - a._ts);
+
     allRecords.sort((a, b) => a._ts - b._ts);
     
+    console.log(`[DeviceManager] Fetched ${allRecords.length} attendance records`);
+    //console.log(allRecords);
+
     // Return with formatted datetime string
     return allRecords.map(({ _ts, datetime, ...rest }) => ({
       ...rest,
@@ -182,7 +187,7 @@ class DeviceManager extends EventEmitter {
     if (rec.realtimeListening || !rec.connected) return;
 
     rec.realtimeListening = true;
-
+    console.log(`[${ip}] Starting realtime logs...`);
     rec.zk.getRealTimeLogs(data => {
       setImmediate(() => {
         this.processRealtimeLog(data, rec, ip)
@@ -217,8 +222,8 @@ class DeviceManager extends EventEmitter {
 
         this.realtimeBuffer.push(payload);
 
-        const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
-        this.sendSmsQueueNotification(smsMobileNo, payload);
+        // const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
+        // this.sendSmsQueueNotification(smsMobileNo, payload);
       } else {
         console.warn(
           `[${ip}] ⚠️ Failed to insert attendance log: ${response?.message}`

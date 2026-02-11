@@ -75,8 +75,8 @@ server.listen(ATTPORT, ATTIP, async () => {
       try {
         const logs = await deviceManager.getDeviceAttendanceRecords();
         //logs.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
-
-        socket.emit('attendanceLogs', logs.slice(0, 800));
+        console.log(`[Socket] Sending ${logs.length} historical attendance logs...`);
+        socket.emit('attendanceLogs', logs);
       } catch (err) {
         socket.emit('attendanceError', { message: err.message });
       }
@@ -93,7 +93,8 @@ server.listen(ATTPORT, ATTIP, async () => {
       try {
         const logs = await deviceManager.getDeviceAttendanceRecords();
         //logs.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
-        socket.emit('attendanceLogs', logs.slice(0, 800));
+        console.log(`[Socket] Sending ${logs.length} realtime attendance logs...`);
+        socket.emit('attendanceLogs', logs);
       } catch (err) {
         socket.emit('attendanceError', { message: err.message });
       }
