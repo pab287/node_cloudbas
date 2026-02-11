@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ZK Attendance Monitor</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script defer src="zkFailover.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 6px 0; border-bottom: 1px solid #eee; }
+    .realtime { color: green; font-weight: bold; }
+    .highlight {
+        background-color: yellow;
+        transition: background-color 1s ease;
+    }
+  </style>
+</head>
+<body>
+    <div id="attendance-container">
+    <h2>Attendance Logs</h2>
+    <ul id="attendance-list"></ul>
+    </div>
+</body>
+</html>
