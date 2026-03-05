@@ -57,7 +57,7 @@ const sendSms = async function (phoneNumber, message) {
     const smsPort = process.env.SMS_PORT ?? 443;
     const smsUser = process.env.SMS_USER ?? "VoP";
     const smsPass = process.env.SMS_PASS ?? "3642ab11b34772f2de2af566f0830c56";
-    const smsModem = process.env.SMS_MODEM ?? "modem3";
+    const smsModem = process.env.SMS_MODEM ?? "modem7";
 
     if (!phoneNumber || !message) {
         return { success: false, message: "Phone number and message are required." };

@@ -99,6 +99,7 @@ class DeviceManager extends EventEmitter {
         socketBound: false,
         reconnecting: reconnecting ?? false,
         lastError: null,
+        tcpSmsSent: false,
       };
       this.devices.set(ip, rec);
     }
@@ -115,6 +116,7 @@ class DeviceManager extends EventEmitter {
       await rec.zk.enableDevice();
       rec.connected = true;
       rec.lastSeen = Date.now();
+      rec.tcpSmsSent = false; // reset SMS lock
 
       this.bindSocketEvents(ip, rec);
 
@@ -134,6 +136,28 @@ class DeviceManager extends EventEmitter {
       };
 
       console.error(`[${ip}] ❌ Connection failed | Command: ${command} | Error: ${message}`);
+
+      // 🚨 SEND SMS ONLY ON TCP CONNECT (ONE TIME)
+      if (command === 'TCP CONNECT' && !rec.tcpSmsSent) {
+        rec.tcpSmsSent = true;
+
+        const adminNumbers = (process.env.SMS_ADMIN_MOBILE_NO || '')
+          .split(',')
+          .map(n => n.trim())
+          .filter(Boolean);
+
+        for (const number of adminNumbers) {
+          const { device_name } = rec.device;
+          const timeStamp = moment().format('dddd, hh:mm A');
+          const dateStamp = moment().format('LL');
+          this.smsQueue.enqueue({
+            to: number, // or hardcode admin number
+            message: `ZKTeco Device ${device_name} failed to connect, [TCP CONNECT - ERROR].\nError: ${message}\nManual check required.\nDATE: ${dateStamp}\nTIME: ${timeStamp}`,
+          });
+        }
+
+        console.log(`[${ip}] 📩 TCP CONNECT SMS sent (one-time)`);
+      }
     }
   }
 
@@ -174,7 +198,6 @@ class DeviceManager extends EventEmitter {
     allRecords.sort((a, b) => a._ts - b._ts);
     
     console.log(`[DeviceManager] Fetched ${allRecords.length} attendance records`);
-    //console.log(allRecords);
 
     // Return with formatted datetime string
     return allRecords.map(({ _ts, datetime, ...rest }) => ({
@@ -222,8 +245,8 @@ class DeviceManager extends EventEmitter {
 
         this.realtimeBuffer.push(payload);
 
-        // const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
-        // this.sendSmsQueueNotification(smsMobileNo, payload);
+        const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
+        this.sendSmsQueueNotification(smsMobileNo, payload);
       } else {
         console.warn(
           `[${ip}] ⚠️ Failed to insert attendance log: ${response?.message}`
@@ -236,10 +259,10 @@ class DeviceManager extends EventEmitter {
 
   async sendSmsQueueNotification(mobileno, data) {
     if(mobileno){
+      const formattedDate = moment(data.datetime).format('LLLL');
       const smsPayload = {
         to: mobileno,
-        message: `Hello ${data.userName}, you have an attendance record on ${moment(data.datetime).format('YYYY-MM-DD HH:mm:ss')}
-        \n This is an automated message. Please disregard.`,
+        message: `Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`,
       };
       this.smsQueue.enqueue(smsPayload);
     }

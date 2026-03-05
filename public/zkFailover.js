@@ -3,7 +3,11 @@ const attendanceList = document.getElementById('attendance-list');
 const renderedLogs = new Map(); 
 
 function getLogKey(log) {
-  return `${log.ip}_${log.deviceUserId}_${log._ts}`;
+  const time = typeof log.datetime === 'string'
+    ? log.datetime
+    : new Date(log.datetime).getTime();
+
+  return `${log.ip}_${log.deviceUserId}_${time}`;
 }
 
 function cleanupRenderedLogs() {
