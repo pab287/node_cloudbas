@@ -1,9 +1,9 @@
 // deviceManager.js
-const EventEmitter = require('events');
+const EventEmitter = require('node:events');
 const ZKLib = require('node-zklib/zklib');
 const moment = require('moment');
 const { checkPortReachable } = require('./ipreachable');
-const { getActiveDevices, getCurrentUsers } = require('./dbrecord');
+const { getActiveDevices, getCurrentUsers, getCurrentAttendanceLogs } = require('./dbrecord');
 const { handleRealtimeLog, handleDeviceLogs } = require('./helpers/attendanceLogsHandler');
 const { startReconnectWatcher } = require('./helpers/reconnectWatcher');
 
@@ -100,6 +100,7 @@ class DeviceManager extends EventEmitter {
         reconnecting: reconnecting ?? false,
         lastError: null,
         tcpSmsSent: false,
+        realtimeListenerBound: false
       };
       this.devices.set(ip, rec);
     }
@@ -118,6 +119,7 @@ class DeviceManager extends EventEmitter {
       rec.lastSeen = Date.now();
       rec.tcpSmsSent = false; // reset SMS lock
 
+      this.emitDeviceStatus(ip, 'online');
       this.bindSocketEvents(ip, rec);
 
       if(reconnecting) console.log(`[${ip}] ✅ Reconnected`);
@@ -155,29 +157,33 @@ class DeviceManager extends EventEmitter {
             message: `ZKTeco Device ${device_name} failed to connect, [TCP CONNECT - ERROR].\nError: ${message}\nManual check required.\nDATE: ${dateStamp}\nTIME: ${timeStamp}`,
           });
         }
-
         console.log(`[${ip}] 📩 TCP CONNECT SMS sent (one-time)`);
       }
+
+      this.emitDeviceStatus(ip, 'error', {
+        command,
+        message
+      });
     }
   }
 
-  async getDeviceAttendanceRecords() {
+  async __getDeviceAttendanceRecords() {
     const today = moment().format('YYYY-MM-DD');
     const allRecords = [];
 
     for (const [ip, rec] of this.devices.entries()) {
       if (!rec.connected || !rec.zk) continue;
       try {
+        const { id: device_id, device_name } = rec.device;
         const logs = await this.enqueueCommand(ip, async () => rec.zk.getAttendances());
-
         const formatted = logs.data
           .map(log => {
-            handleDeviceLogs(log, rec.device.device_id);
+            handleDeviceLogs(log, device_id);
             const dt = new Date(log.recordTime);
             return {
               datetime: dt,
               deviceUserId: log.deviceUserId,
-              deviceName: rec.device.device_name,
+              deviceName: device_name,
               ip,
               userName: this.currentUsers[log.deviceUserId] || log.deviceUserId,
               userImage: this.currentUsersImage[log.deviceUserId] || 'assets/media/avatars/blank.png',
@@ -206,12 +212,188 @@ class DeviceManager extends EventEmitter {
     }));
   }
 
-  async startRealtime(rec, ip) {
+  async getDeviceAttendanceRecords() {
+    const today = moment().format('YYYY-MM-DD');
+
+    const startOfToday = moment(today).startOf('day').valueOf();
+    const endOfToday = moment(today).endOf('day').valueOf();
+
+    const allRecords = [];
+
+    const deviceEntries = Array.from(this.devices.entries());
+
+    const results = await Promise.all(
+        deviceEntries.map(([ip, rec]) =>
+            this.fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday)
+        )
+    );
+
+    for (const logs of results) {
+        if (logs?.length) allRecords.push(...logs);
+    }
+
+    allRecords.sort((a, b) => a._ts - b._ts);
+
+    console.log(`[DeviceManager] Fetched ${allRecords.length} attendance records`);
+
+    return allRecords.map(({ _ts, datetime, ...rest }) => ({
+        ...rest,
+        datetime: moment(datetime).format('YYYY-MM-DD HH:mm:ss')
+    }));
+}
+
+async fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday) {
+    if (!rec.connected || !rec.zk) return [];
+
+    const logsResult = [];
+
+    try {
+        const { id: device_id, device_name } = rec.device;
+
+        let logs = await this.enqueueCommand(ip, () =>
+            rec.zk.getAttendances()
+        );
+
+        if (!logs?.data) return [];
+
+        for (const log of logs.data) {
+            await handleDeviceLogs(log, device_id);
+
+            const dt = new Date(log.recordTime);
+            const ts = dt.getTime();
+
+            if (ts < startOfToday || ts > endOfToday) continue;
+
+            logsResult.push({
+                datetime: dt,
+                deviceUserId: log.deviceUserId,
+                deviceName: device_name,
+                ip,
+                userName: this.currentUsers[log.deviceUserId] || log.deviceUserId,
+                userImage:
+                    this.currentUsersImage[log.deviceUserId] ||
+                    'assets/media/avatars/blank.png',
+                _ts: ts
+            });
+        }
+
+        return logsResult;
+    } catch (err) {
+        console.error(`[${ip}] ⚠ Attendance fetch failed: ${err.message}`);
+
+        return await this.fetchFallbackDeviceLogs(rec);
+    }
+}
+
+async fetchFallbackDeviceLogs(rec) {
+    try {
+        const { id, device_name } = rec.device;
+        const today = moment().format('YYYY-MM-DD');
+        const deviceLogs = await getCurrentAttendanceLogs(today, id);
+        if (!deviceLogs?.length) return [];
+
+        return deviceLogs.map(log => {
+            const dt = new Date(log.recordTime);
+            return {
+                datetime: dt,
+                deviceUserId: log.deviceUserId,
+                deviceName: device_name,
+                ip: rec.device.ip,
+                userName:
+                    this.currentUsers[log.deviceUserId] ||
+                    log.deviceUserId,
+                userImage:
+                    this.currentUsersImage[log.deviceUserId] ||
+                    'assets/media/avatars/blank.png',
+                _ts: dt.getTime()
+            };
+        });
+
+    } catch (err) {
+        console.error(`Fallback log fetch failed: ${err.message}`);
+        return [];
+    }
+}
+
+  async __oldCode_getDeviceAttendanceRecords() {
+    const today = moment().format('YYYY-MM-DD');
+    const allRecords = [];
+
+    const startOfToday = moment(today).startOf('day').valueOf();
+    const endOfToday = moment(today).endOf('day').valueOf();
+    for (const [ip, rec] of this.devices.entries()) {
+        if (!rec.connected || !rec.zk) continue;
+        try {
+            const { id: device_id, device_name } = rec.device;
+            const logs = await this.enqueueCommand(ip, async () => rec.zk.getAttendances());
+            if (!logs?.data) continue;
+            for (const log of logs.data) {
+                await handleDeviceLogs(log, device_id);
+                const dt = new Date(log.recordTime);
+                const ts = dt.getTime();
+
+                // ✅ Filter today attendance using timestamp boundary
+                if (ts < startOfToday || ts > endOfToday) continue;
+
+                allRecords.push({
+                    datetime: dt,
+                    deviceUserId: log.deviceUserId,
+                    deviceName: device_name,
+                    ip,
+                    userName: this.currentUsers[log.deviceUserId] || log.deviceUserId,
+                    userImage: this.currentUsersImage[log.deviceUserId] || 'assets/media/avatars/blank.png',
+                    _ts: ts
+                });
+            }
+
+        } catch (err) {
+            console.error(`[${ip}] ⚠ Attendance fetch failed: ${err.message}`);
+        }
+    }
+
+    // Sort oldest → newest (optional)
+    allRecords.sort((a, b) => a._ts - b._ts);
+    console.log(`[DeviceManager] Fetched ${allRecords.length} attendance records`);
+    return allRecords.map(({ _ts, datetime, ...rest }) => ({
+        ...rest,
+        datetime: moment(datetime).format('YYYY-MM-DD HH:mm:ss')
+    }));
+}
+
+async startRealtime(rec, ip) {
+  if (!rec.connected || rec.realtimeListening) return;
+  rec.realtimeListening = true;
+  if (rec.realtimeListenerBound) return;
+  rec.realtimeListenerBound = true;
+
+  console.log(`[${ip}] Starting realtime logs...`);
+
+  const zk = rec.zk;
+  if (!zk) return;
+
+  // Remove previous listener first (VERY IMPORTANT)
+  try {
+    zk.getRealTimeLogs?.(() => {});
+  } catch {}
+
+  zk.getRealTimeLogs?.(data => {
+    if (!data) return;
+
+    setImmediate(() => {
+      this.processRealtimeLog(data, rec, ip).catch(err =>
+        console.error(`[${ip}] realtime handler error`, err.message)
+      );
+    });
+  });
+}
+
+  async __startRealtime(rec, ip) {
     if (rec.realtimeListening || !rec.connected) return;
 
     rec.realtimeListening = true;
     console.log(`[${ip}] Starting realtime logs...`);
-    rec.zk.getRealTimeLogs(data => {
+    rec.zk?.getRealTimeLogs?.(data => {
+      if (!data) return;
       setImmediate(() => {
         this.processRealtimeLog(data, rec, ip)
           .catch(err =>
@@ -223,7 +405,7 @@ class DeviceManager extends EventEmitter {
 
   async realTimeLogs() {
     for (const [ip, rec] of this.devices.entries()) {
-      if (!rec.connected || !rec.zk) continue;
+      if (!rec.connected || !rec.zk || rec.realtimeListening) continue;
       await this.startRealtime(rec, ip);
     }
   }
@@ -317,6 +499,33 @@ class DeviceManager extends EventEmitter {
   async runHeartbeat(ip, rec) {
     try {
       const now = Date.now();
+      // Silent death detection
+      if (rec.lastSeen && now - rec.lastSeen > this.heartbeatInterval * 2) {
+        throw new Error('Device unresponsive (silent)');
+      }
+      if (!rec.zk) return false;
+      // ⭐ IMPORTANT — prevent packet race condition
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (typeof rec.zk.getInfo === 'function') {
+        const info = await rec.zk.getInfo().catch(() => null);
+        if (info) {
+          rec.lastSeen = Date.now();
+        }
+      }
+    } catch (err) {
+      console.warn(`[${ip}] 💔 Heartbeat failed: ${err.message}`);
+      this.emitDeviceStatus(ip, 'offline', {
+        reason: 'heartbeat_failed'
+      });
+      await this.healDevice(ip).catch(() => {});
+      return false;
+    }
+    return true;
+  }
+
+  async __runHeartbeat(ip, rec) {
+    try {
+      const now = Date.now();
 
       // 1️⃣ silent death detection
       if (rec.lastSeen && now - rec.lastSeen > this.heartbeatInterval * 2) {
@@ -359,9 +568,11 @@ class DeviceManager extends EventEmitter {
     rec.reconnecting = true;
 
     try {
-      if (rec.zk?.zklibTcp?.socket) {
-        rec.zk.zklibTcp.socket.removeAllListeners();
-        rec.zk.zklibTcp.socket.destroy();
+      const socket = rec.zk?.zklibTcp?.socket;
+      if (socket && !socket.destroyed) {
+        socket.removeAllListeners();
+        socket.end();
+        socket.destroy();
       }
     } catch {}
 
@@ -384,12 +595,14 @@ class DeviceManager extends EventEmitter {
         await this.startRealtime(rec, ip);
         console.log(`[${ip}] ✅ Device reconnected`);
         rec.lastSeen = Date.now();
+        this.emitDeviceStatus(ip, 'online');
       }
     } catch (err) {
       console.error(`[${ip}] ❌ Device reconnection failed: ${err.message}`);
     }
 
     rec.reconnecting = false;
+    this.emitDeviceStatus(ip, 'reconnecting');
   }
 
   withTimeout(promise, ms, label = 'operation') {
@@ -407,6 +620,9 @@ class DeviceManager extends EventEmitter {
     if (!socket || rec.socketBound) return;
 
     rec.socketBound = true;
+    socket.removeAllListeners('close');
+    socket.removeAllListeners('error');
+    socket.removeAllListeners('timeout');
 
     socket.on('close', () => {
       console.warn(`[${ip}] 🔌 socket closed`);
@@ -444,6 +660,27 @@ class DeviceManager extends EventEmitter {
 
       this.realtimeBuffer.length = 0;
     }, this.realtimeFlushInterval);
+  }
+
+  emitDeviceStatus(ip, status, extra = {}) {
+    const rec = this.devices.get(ip);
+    if (!rec) return;
+
+    // ⭐ update stored status
+    rec.lastStatus = status;
+
+    const payload = {
+      ip,
+      deviceName: rec.device?.device_name ?? ip,
+      status, // online | offline | reconnecting | error
+      lastSeen: rec.lastSeen ? moment(rec.lastSeen).format('YYYY-MM-DD HH:mm:ss') : null,
+      timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
+      ...extra
+    };
+
+    console.log("[DeviceStatus Emit]", payload); // DEBUG
+    this.emit('device:status', payload);
+    this.io.emit('deviceStatus', payload);
   }
 
 }

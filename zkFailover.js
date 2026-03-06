@@ -1,6 +1,12 @@
 require('dotenv').config();
 
 process.on('unhandledRejection', (reason) => {
+  if (!reason) return;
+
+  if (reason.message?.includes('subarray')) {
+    console.warn('⚠ Ignored ZKLib buffer subarray race condition');
+    return;
+  }
   console.error('🚨 Unhandled promise rejection:', reason);
 });
 
@@ -70,11 +76,27 @@ server.listen(ATTPORT, ATTIP, async () => {
       return;
     }
 
+    // ⭐ SEND INITIAL DEVICE STATUS
+    const statuses = [];
+
+    for (const [ip, rec] of deviceManager.devices.entries()) {
+      statuses.push({
+        ip,
+        deviceName: rec.device?.device_name ?? ip,
+        status: rec.lastStatus ?? 'offline',
+        lastSeen: rec.lastSeen
+          ? moment(rec.lastSeen).format('YYYY-MM-DD HH:mm:ss')
+          : null,
+        timestamp: moment().format('YYYY-MM-DD HH:mm:ss')
+      });
+    }
+
+    socket.emit('deviceStatusInit', statuses);
+
     // 1️⃣ Send historical attendance asynchronously
     (async () => {
       try {
         const logs = await deviceManager.getDeviceAttendanceRecords();
-        //logs.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
         console.log(`[Socket] Sending ${logs.length} historical attendance logs...`);
         socket.emit('attendanceLogs', logs);
       } catch (err) {
@@ -88,11 +110,19 @@ server.listen(ATTPORT, ATTIP, async () => {
     };
     deviceManager.on('attendance:realtime', realtimeHandler);
 
+    const deviceStatusHandler = (statuses) => {
+      socket.emit('deviceStatus', statuses);
+    };
+    deviceManager.on('device:status', deviceStatusHandler);
+
+    socket.on("deviceStatus", function(data){
+        console.log("Device Status:", data);
+    });
+
     // 3️⃣ Frontend requested attendance (optional, can duplicate)
     socket.on('getAttendanceLogs', async () => {
       try {
         const logs = await deviceManager.getDeviceAttendanceRecords();
-        //logs.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
         console.log(`[Socket] Sending ${logs.length} realtime attendance logs...`);
         socket.emit('attendanceLogs', logs);
       } catch (err) {
@@ -104,6 +134,7 @@ server.listen(ATTPORT, ATTIP, async () => {
     socket.on('disconnect', () => {
       console.log('[Socket] Frontend disconnected:', socket.id);
       deviceManager.off('attendance:realtime', realtimeHandler);
+      deviceManager.off('device:status', deviceStatusHandler);
     });
   });
 

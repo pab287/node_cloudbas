@@ -66,4 +66,5 @@ const handleDeviceLogs = async (data, deviceId) => {
     return { success: false, message: err.message };
   }
 };
+
 module.exports = { handleRealtimeLog, handleDeviceLogs };

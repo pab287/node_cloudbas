@@ -32,6 +32,17 @@ function renderCard(log, { prepend = false, highlight = false } = {}) {
     if (prev) prev.classList.remove('highlight');
   }
 
+    // ✅ Format datetime to AM/PM
+  const formattedDateTime = new Date(log.datetime).toLocaleString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
   const card = document.createElement('div');
   card.className = 'card';
 
@@ -44,7 +55,7 @@ function renderCard(log, { prepend = false, highlight = false } = {}) {
       <div class="card-main">
         <div class="username">${log.userName || 'Employee'}</div>
         <div class="userid">BIOMETRIC #: ${log.deviceUserId}</div>
-        <div class="datetime">${log.datetime}</div>
+        <div class="datetime">${formattedDateTime}</div>
       </div>
 
       <div class="card-footer">
@@ -94,3 +105,69 @@ socket.on('attendanceError', (err) => {
 socket.on('disconnect', () => {
   console.log('[Socket] Frontend disconnected');
 });
+
+const deviceStatusContainer = document.getElementById('device-status');
+const devices = new Map();
+
+socket.on("deviceStatus", (device) => {
+  console.log(device);
+  devices.set(device.ip, device);
+  renderDeviceStatus();
+});
+
+socket.on('deviceStatusInit', (list) => {
+  list.forEach(dev => {
+    devices.set(dev.ip, dev);
+  });
+  renderDeviceStatus();
+});
+
+function renderDeviceStatus() {
+  deviceStatusContainer.innerHTML = "";
+
+  devices.forEach(dev => {
+
+    const card = document.createElement("div");
+    card.classList.add("device-card");
+
+    let statusClass = "status-error";
+    let statusText = dev.status;
+    let iconColor = "text-secondary";
+    let bgColor = "bg-secondary";
+
+    if (dev.status === "online") {
+      statusClass = "status-online";
+      statusText = "Online";
+      iconColor = "text-success";
+      bgColor = "bg-success";
+    } 
+    else if (dev.status === "offline") {
+      statusClass = "status-offline";
+      statusText = "Offline";
+      iconColor = "text-muted";
+      bgColor = "bg-muted";
+      card.classList.add("device-offline-card");
+    } 
+    else if (dev.status === "reconnecting") {
+      statusClass = "status-reconnecting";
+      statusText = "Reconnecting";
+      iconColor = "text-warning";
+      bgColor = "bg-warning";
+    }
+
+    card.innerHTML = `
+      <div class="device-card-left ${bgColor}">
+        <i class="bi bi-fingerprint fs-5 ${iconColor}"></i>
+      </div>
+
+      <div class="device-card-right">
+        <div class="device-name">${dev.deviceName}</div>
+        <div class="device-status ${statusClass}">
+          ${statusText}
+        </div>
+      </div>
+    `;
+
+    deviceStatusContainer.appendChild(card);
+  });
+}
