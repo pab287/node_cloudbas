@@ -49,7 +49,11 @@ class DeviceManager extends EventEmitter {
       const batch = devices.slice(i, i + batchSize);
       await Promise.all(batch.map(device => this.connect(device)));
     }
-    await this.realTimeLogs();
+    //await this.realTimeLogs();
+    for (const [ip, rec] of this.devices.entries()) {
+      await this.startRealtime(rec, ip);
+    }
+
     this.startRealtimeFlush();
     await this.getDeviceAttendanceRecords();
     this.startHeartbeat();
@@ -361,6 +365,36 @@ async fetchFallbackDeviceLogs(rec) {
 }
 
 async startRealtime(rec, ip) {
+  if (!rec.connected || rec.realtimeListenerBound) return;
+
+  const zk = rec.zk;
+  if (!zk) return;
+
+  console.log(`[${ip}] ▶ Starting realtime stream`);
+
+  try {
+    rec.realtimeListenerBound = true;
+    rec.realtimeListening = true;
+
+    zk.getRealTimeLogs(data => {
+      if (!data) return;
+
+      setImmediate(() => {
+        this.processRealtimeLog(data, rec, ip).catch(err =>
+          console.error(`[${ip}] realtime handler error`, err.message)
+        );
+      });
+    });
+
+  } catch (err) {
+    console.error(`[${ip}] realtime start failed: ${err.message}`);
+
+    rec.realtimeListenerBound = false;
+    rec.realtimeListening = false;
+  }
+}
+
+async ___notWorking_startRealtime(rec, ip) {
   if (!rec.connected || rec.realtimeListening) return;
   rec.realtimeListening = true;
   if (rec.realtimeListenerBound) return;
@@ -592,7 +626,10 @@ async startRealtime(rec, ip) {
   
       await this.connect(rec.device, true);
       if(rec.connected){
+        //await this.startRealtime(rec, ip);
+        rec.realtimeListenerBound = false;
         await this.startRealtime(rec, ip);
+        
         console.log(`[${ip}] ✅ Device reconnected`);
         rec.lastSeen = Date.now();
         this.emitDeviceStatus(ip, 'online');
