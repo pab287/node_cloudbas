@@ -22,6 +22,9 @@ class DeviceManager extends EventEmitter {
     this.commandQueues = new Map();
     this.heartbeatInterval = 30000;
 
+    this.minHeartbeatInterval = 30000; // 30 sec
+    this.maxHeartbeatInterval = 60000; // 60 sec
+
     this.smsQueue = new SmsQueue(sendSms);
 
     this.currentUsers = {};
@@ -462,7 +465,7 @@ async ___notWorking_startRealtime(rec, ip) {
         this.realtimeBuffer.push(payload);
 
         const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
-        this.sendSmsQueueNotification(smsMobileNo, payload);
+        // this.sendSmsQueueNotification(smsMobileNo, payload);
       } else {
         console.warn(
           `[${ip}] ⚠️ Failed to insert attendance log: ${response?.message}`
@@ -521,7 +524,36 @@ async ___notWorking_startRealtime(rec, ip) {
     return next;
   }
 
+  getRandomHeartbeatInterval() {
+    return Math.floor(
+      Math.random() * (this.maxHeartbeatInterval - this.minHeartbeatInterval + 1)
+    ) + this.minHeartbeatInterval;
+  }
+
   startHeartbeat() {
+    for (const [ip, rec] of this.devices.entries()) {
+      this.scheduleHeartbeat(ip, rec);
+    }
+  }
+
+  scheduleHeartbeat(ip, rec) {
+    const delay = this.getRandomHeartbeatInterval();
+    rec.heartbeatInterval = delay;
+
+    rec.heartbeatTimer = setTimeout(async () => {
+      try {
+        if (rec.connected && rec.zk) {
+          await this.runHeartbeat(ip, rec);
+        }
+      } finally {
+        if (this.devices.has(ip)) {
+          this.scheduleHeartbeat(ip, rec);
+        }
+      }
+    }, delay);
+  }
+
+  __oldCode_startHeartbeat() {
     setInterval(() => {
       for (const [ip, rec] of this.devices.entries()) {
         if (!rec.connected || !rec.zk) continue;
@@ -531,6 +563,38 @@ async ___notWorking_startRealtime(rec, ip) {
   }
 
   async runHeartbeat(ip, rec) {
+    try {
+      const now = Date.now();
+      const expectedInterval = rec.heartbeatInterval || this.minHeartbeatInterval;
+
+      // Silent death detection
+      if (rec.lastSeen && now - rec.lastSeen > expectedInterval * 2) {
+        throw new Error('Device unresponsive (silent)');
+      }
+
+      if (!rec.zk) return false;
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      if (typeof rec.zk.getInfo === 'function') {
+        const info = await rec.zk.getInfo().catch(() => null);
+        if (info) {
+          rec.lastSeen = Date.now();
+        }
+      }
+    } catch (err) {
+      console.warn(`[${ip}] 💔 Heartbeat failed: ${err.message}`);
+      this.emitDeviceStatus(ip, 'offline', {
+        reason: 'heartbeat_failed'
+      });
+      await this.healDevice(ip).catch(() => {});
+      return false;
+    }
+
+    return true;
+  }
+
+  async __oldCode__runHeartbeat(ip, rec) {
     try {
       const now = Date.now();
       // Silent death detection

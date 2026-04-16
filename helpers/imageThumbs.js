@@ -43,8 +43,8 @@ const generateImageThumbnail = async (id=0, imageFilePath=null) => {
 		const processRecord = async (record) => {
 		  try {
 			const empDir = path.join('uploads', 'images', 'employee_files', `empcode_${record.employee_id}`);
-			const imageFile = path.join(__dirname, 'public', empDir, record.pic_filename);
-			const thumbDir = path.join(__dirname, 'public', empDir, 'thumbnails');
+			const imageFile = path.join(__dirname, '..', 'public', empDir, record.pic_filename);
+			const thumbDir = path.join(__dirname, '..', 'public', empDir, 'thumbnails');
 			const thumbnailFile = path.join(thumbDir, record.pic_filename);
 
 			// Skip if source image doesn’t exist
@@ -115,8 +115,8 @@ const createEmployeeThumbnails = async function (w=75, h=75) {
     const processRecord = async (record) => {
       try {
         const empDir = path.join('uploads', 'files', 'images', 'employee_files', `empcode_${record.employee_id}`);
-        const imageFile = path.join(__dirname, 'public', empDir, record.pic_filename);
-        const thumbDir = path.join(__dirname, 'public', empDir, 'thumbnails');
+        const imageFile = path.join(__dirname, '..', 'public', empDir, record.pic_filename);
+        const thumbDir = path.join(__dirname, '..', 'public', empDir, 'thumbnails');
         const thumbnailFile = path.join(thumbDir, record.pic_filename);
 
         // Skip if source image doesn’t exist
@@ -190,12 +190,13 @@ const resizeEmployeeThumbnails = async function (w = 75, h = 75, resize = false)
       try {
         const empDir = path.join(
           'uploads',
+          'files',
           'images',
           'employee_files',
           `empcode_${record.employee_id}`
         );
-        const imageFile = path.join(__dirname, 'public', empDir, record.pic_filename);
-        const thumbDir = path.join(__dirname, 'public', empDir, 'thumbnails');
+        const imageFile = path.join(__dirname, '..', 'public', empDir, record.pic_filename);
+        const thumbDir = path.join(__dirname, '..', 'public', empDir, 'thumbnails');
         const thumbnailFile = path.join(thumbDir, record.pic_filename);
 
         if (!(await fileExists(imageFile))) {

@@ -249,6 +249,7 @@ const getCurrentAttendanceLogs = async (date, deviceId = null) => {
             (employee_id, biometricno, lastname, firstname, middlename, suffix, pic_filename, mobileno, created_at, updated_at)
             VALUES ?
             ON DUPLICATE KEY UPDATE
+              biometricno = VALUES(biometricno),
               lastname = VALUES(lastname),
               firstname = VALUES(firstname),
               middlename = VALUES(middlename),
