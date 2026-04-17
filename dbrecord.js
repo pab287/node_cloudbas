@@ -65,7 +65,7 @@ const getCurrentUsers = async () => {
             CASE WHEN middlename != 'N/A' AND middlename != 'NONE'
             AND middlename !='' AND middlename IS NOT NULL 
             THEN CONCAT(' ', SUBSTR(middlename, 1, 1), '.') ELSE '' END, ' ', lastname, 
-            CASE WHEN suffix != 'N/A' AND suffix !='NONE' AND suffix !='' AND suffix IS NOT NULL THEN CONCAT(' ', suffix) ELSE '' END))) as employee_name, thumb_path, mobileno
+            CASE WHEN suffix != 'N/A' AND suffix !='NONE' AND suffix !='' AND suffix IS NOT NULL THEN CONCAT(' ', suffix) ELSE '' END))) as employee_name, thumb_path, mobileno, telegram_chat_id
             FROM employees order by id ASC`;
 
             connection.query(sql, (err, results) => {
@@ -240,13 +240,14 @@ const getCurrentAttendanceLogs = async (date, deviceId = null) => {
             rec.suffix,
             rec.pic_filename,
             rec.mobileno,
+            rec.telegram_chat_id || null,
             now,
             now
           ]);
 
           const sql = `
             INSERT INTO employees
-            (employee_id, biometricno, lastname, firstname, middlename, suffix, pic_filename, mobileno, created_at, updated_at)
+            (employee_id, biometricno, lastname, firstname, middlename, suffix, pic_filename, mobileno, telegram_chat_id, created_at, updated_at)
             VALUES ?
             ON DUPLICATE KEY UPDATE
               biometricno = VALUES(biometricno),
@@ -256,6 +257,7 @@ const getCurrentAttendanceLogs = async (date, deviceId = null) => {
               suffix = VALUES(suffix),
               pic_filename = VALUES(pic_filename),
               mobileno = VALUES(mobileno),
+              telegram_chat_id = VALUES(telegram_chat_id),
               updated_at = VALUES(updated_at)
           `;
 

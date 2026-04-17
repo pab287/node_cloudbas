@@ -11,6 +11,7 @@ class SmsQueue {
     // Initialize retries count
     this.queue.push({ ...smsPayload, retries: 0 });
     this.processQueue();
+    return this.sending; // Return whether the queue is currently processing
   }
 
   async processQueue() {
@@ -23,7 +24,9 @@ class SmsQueue {
 
       try {
         const result = await this.sendSmsFn(to, message);
-
+        const { response, success, message: responseMessage } = result;
+        console.log(`[SMS Queue] Attempt to send SMS to ${to}, attempt ${retries + 1}:`, responseMessage ?? 'No response message');
+        console.log(`[SMS Queue] Response Status:`, response.status);
         if (result.success) {
           console.log(`[SMS Queue] ✅ Sent SMS to ${to}`);
           console.log(`[SMS Queue] Message: ${message}`);

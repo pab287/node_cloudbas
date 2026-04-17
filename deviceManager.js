@@ -6,12 +6,17 @@ const { checkPortReachable } = require('./ipreachable');
 const { getActiveDevices, getCurrentUsers, getCurrentAttendanceLogs } = require('./dbrecord');
 const { handleRealtimeLog, handleDeviceLogs } = require('./helpers/attendanceLogsHandler');
 const { startReconnectWatcher } = require('./helpers/reconnectWatcher');
+const { sendTelegramMessage } = require('./helpers/sendTelegramHelper');
 
 const SmsQueue = require('./helpers/smsQueue');
 const { sendSms } = require('./helpers/smsSender');
 
 const zkTimeoutDuration = Number.parseInt(process.env.ZKTIMEOUT_DURATION, 10) || 20000;
 const zkImportDuration = Number.parseInt(process.env.ZKINPORT_DURATION, 10) || 30000;
+
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+
 const COMMANDS = require('node-zklib/constants');
 
 class DeviceManager extends EventEmitter {
@@ -30,7 +35,7 @@ class DeviceManager extends EventEmitter {
     this.currentUsers = {};
     this.currentUsersImage = {};
     this.currentUsersMobileNo = {};
-
+    this.currentUsersChatId = {};
     // ZKLib class reference
     this.ZKLib = ZKLib;
 
@@ -79,6 +84,11 @@ class DeviceManager extends EventEmitter {
 
       this.currentUsersMobileNo = users.reduce((acc, user) => {
         acc[user.biometricno] = user.mobileno;
+        return acc;
+      }, {});
+
+      this.currentUsersChatId = users.reduce((acc, user) => {
+        acc[user.biometricno] = user.telegram_chat_id;
         return acc;
       }, {});
 
@@ -465,7 +475,15 @@ async ___notWorking_startRealtime(rec, ip) {
         this.realtimeBuffer.push(payload);
 
         const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
-        // this.sendSmsQueueNotification(smsMobileNo, payload);
+        //this.sendSmsQueueNotification(smsMobileNo, payload);
+
+        const chatId = this.currentUsersChatId[data.userId] || null;
+        const telegramSent = await this.sendTelegramNotification(chatId, payload);
+        if(telegramSent == false && smsMobileNo){
+          this.sendSmsQueueNotification(smsMobileNo, payload);
+        }else{
+          console.log(`[${ip}] Telegram notification sent successfully for user ${payload.userName}`);
+        }
       } else {
         console.warn(
           `[${ip}] ⚠️ Failed to insert attendance log: ${response?.message}`
@@ -481,9 +499,23 @@ async ___notWorking_startRealtime(rec, ip) {
       const formattedDate = moment(data.datetime).format('LLLL');
       const smsPayload = {
         to: mobileno,
-        message: `Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`,
+        message: `This is a test message! Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`,
       };
       this.smsQueue.enqueue(smsPayload);
+    }else{
+      return false;
+    }
+  }
+
+  async sendTelegramNotification(chatId, data) {
+    if(chatId){
+      const formattedDate = moment(data.datetime).format('LLLL');
+      const message = `<b>This is a test message!</b>\n\nHello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`;
+      const response = await sendTelegramMessage(telegramBotToken, chatId, message);
+      return response.ok;
+      //console.log(`[${data.ip}] Telegram notification response:`, response);
+    }else{
+      return false;
     }
   }
 
