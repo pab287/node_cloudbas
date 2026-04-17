@@ -15,7 +15,7 @@ const zkTimeoutDuration = Number.parseInt(process.env.ZKTIMEOUT_DURATION, 10) ||
 const zkImportDuration = Number.parseInt(process.env.ZKINPORT_DURATION, 10) || 30000;
 
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+//const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
 const COMMANDS = require('node-zklib/constants');
 
