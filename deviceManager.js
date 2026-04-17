@@ -475,8 +475,6 @@ async ___notWorking_startRealtime(rec, ip) {
         this.realtimeBuffer.push(payload);
 
         const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
-        //this.sendSmsQueueNotification(smsMobileNo, payload);
-
         const chatId = this.currentUsersChatId[data.userId] || null;
         const telegramSent = await this.sendTelegramNotification(chatId, payload);
         if(telegramSent == false && smsMobileNo){
@@ -513,7 +511,6 @@ async ___notWorking_startRealtime(rec, ip) {
       const message = `<b>This is a test message!</b>\n\nHello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`;
       const response = await sendTelegramMessage(telegramBotToken, chatId, message);
       return response.ok;
-      //console.log(`[${data.ip}] Telegram notification response:`, response);
     }else{
       return false;
     }
