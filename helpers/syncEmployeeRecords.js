@@ -1,7 +1,8 @@
 require('dotenv').config();
 const moment = require('moment');
 const axios = require("axios");
-const { storeSyncedEmployeeRecords } = require('../dbrecord');
+const { storeSyncedEmployeeRecords, updateAttendanceLogSent } = require('../dbrecord');
+
 const REMPREC_URL = process.env.REMOTE_EMPLOYEE_RECORDS ?? null;
 
 const getRemoteEmployeeRecords = async () => {
@@ -44,4 +45,4 @@ const syncRemoteEmployeeRecords = async () => {
   return true;
 };
 
-module.exports = syncRemoteEmployeeRecords;
+module.exports = { syncRemoteEmployeeRecords };

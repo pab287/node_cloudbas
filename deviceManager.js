@@ -7,6 +7,7 @@ const { getActiveDevices, getCurrentUsers, getCurrentAttendanceLogs } = require(
 const { handleRealtimeLog, handleDeviceLogs } = require('./helpers/attendanceLogsHandler');
 const { startReconnectWatcher } = require('./helpers/reconnectWatcher');
 const { sendTelegramMessage } = require('./helpers/sendTelegramHelper');
+const { enqueueRemoteAttendanceSync } = require('./helpers/remoteSyncQueue');
 
 const SmsQueue = require('./helpers/smsQueue');
 const { sendSms } = require('./helpers/smsSender');
@@ -482,6 +483,14 @@ async ___notWorking_startRealtime(rec, ip) {
         }else{
           console.log(`[${ip}] Telegram notification sent successfully for user ${payload.userName}`);
         }
+
+        enqueueRemoteAttendanceSync(data, rec.device.id)
+          .then((remoteResponse) => {
+            console.log('remote response:', remoteResponse);
+          })
+          .catch((err) => {
+            console.error(`[${ip}] Remote sync queue error: ${err.message}`);
+          });
       } else {
         console.warn(
           `[${ip}] ⚠️ Failed to insert attendance log: ${response?.message}`
@@ -497,7 +506,7 @@ async ___notWorking_startRealtime(rec, ip) {
       const formattedDate = moment(data.datetime).format('LLLL');
       const smsPayload = {
         to: mobileno,
-        message: `This is a test message! Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`,
+        message: `This is a test message! Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard. GC&C Cares`,
       };
       this.smsQueue.enqueue(smsPayload);
     }else{
@@ -508,7 +517,7 @@ async ___notWorking_startRealtime(rec, ip) {
   async sendTelegramNotification(chatId, data) {
     if(chatId){
       const formattedDate = moment(data.datetime).format('LLLL');
-      const message = `<b>This is a test message!</b>\n\nHello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.`;
+      const message = `<b>This is a test message!</b>\n\nHello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.\nGC&C Cares`;
       const response = await sendTelegramMessage(telegramBotToken, chatId, message);
       return response.ok;
     }else{

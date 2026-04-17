@@ -291,4 +291,64 @@ const getCurrentAttendanceLogs = async (date, deviceId = null) => {
     });
   };
 
-module.exports = { getActiveDevices, getCurrentUsers, insertAttendanceLogs, getCurrentAttendanceLogs, storeSyncedEmployeeRecords };
+  const updateAttendanceLogSent = async (log) => {
+    return new Promise((resolve) => {
+      pool.getConnection((err, connection) => {
+        if (err) {
+          const errorMessage = (() => {
+            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+              return 'Database connection was closed.';
+            }
+            if (err.code === 'ER_CON_COUNT_ERROR') {
+              return 'Database has too many connections.';
+            }
+            if (err.code === 'ECONNREFUSED') {
+              return 'Database connection was refused.';
+            }
+            return 'Unknown database connection error.';
+          })();
+
+          console.error(errorMessage);
+          return resolve({ success: false, message: errorMessage });
+        }
+
+        if (!log || !log.biometricno || !log.datetime || !log.device_id) {
+          connection.release();
+          return resolve({ success: false, message: 'Invalid log data.' });
+        }
+
+        const sql = `
+          UPDATE attendance_logs
+          SET is_sent = 1, updated_at = NOW()
+          WHERE biometricno = ?
+            AND datetime = ?
+            AND device_id = ?
+        `;
+
+        const values = [
+          log.biometricno,
+          log.datetime,
+          log.device_id
+        ];
+
+        connection.query(sql, values, (error, results) => {
+          connection.release();
+
+          if (error) {
+            console.error('Error updating attendance log:', error);
+            return resolve({ success: false, message: 'Error updating attendance log.' });
+          }
+
+          return resolve({
+            success: true,
+            message: results.affectedRows > 0
+              ? 'Attendance log marked as sent.'
+              : 'No matching attendance log found.',
+            affectedRows: results.affectedRows
+          });
+        });
+      });
+    });
+  };
+
+module.exports = { getActiveDevices, getCurrentUsers, insertAttendanceLogs, getCurrentAttendanceLogs, storeSyncedEmployeeRecords, updateAttendanceLogSent };
