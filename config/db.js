@@ -3,7 +3,7 @@ let pool = mysql.createPool({
   connectionLimit    : 100,
   host               : 'localhost',
   user               : 'root',
-  password           : 'rootpass',
+  password           : '',
   database           : 'biometric_server',
   multipleStatements : true,
   port               : 3306,

@@ -20,7 +20,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const DeviceManager = require('./deviceManager');
-const { startEmployeeSyncCron } = require('./helpers/cronServiceHelper');
+const { startAllCrons } = require('./helpers/cronServiceHelper');
 const app = express();
 const server = http.createServer(app);
 
@@ -29,8 +29,8 @@ process.removeAllListeners('SIGINT');
 process.removeAllListeners('SIGTERM');
 server.removeAllListeners('close');
 
-// 🕒 Start the employee sync cron job
-startEmployeeSyncCron();
+// 🕒 Start all cron job
+startAllCrons();
 
 // 🧠 Create fresh socket.io instance
 const io = new Server(server, {

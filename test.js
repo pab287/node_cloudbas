@@ -1,4 +1,4 @@
-const syncRemoteEmployeeRecords = require('./helpers/syncEmployeeRecords');
+const { syncRemoteEmployeeRecords } = require('./helpers/syncEmployeeRecords');
 (async () => {
     try {
         await syncRemoteEmployeeRecords();

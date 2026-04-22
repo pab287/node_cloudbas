@@ -3,7 +3,7 @@ const { updateEmployeeImagePath, createEmployeeThumbnails, generateImageThumbnai
     try {
         //await generateImageThumbnail(47, 'Lady_Mae_Abalajon.jpg');
         //await createEmployeeThumbnails(120, 120);
-        // await updateEmployeeImagePath();
+        //await updateEmployeeImagePath();
         await resizeEmployeeThumbnails(120, 120, true);
 
         console.log("All sync tasks finished");
