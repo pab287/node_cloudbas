@@ -9,6 +9,7 @@ const { startReconnectWatcher } = require('./helpers/reconnectWatcher');
 const { sendTelegramMessage } = require('./helpers/sendTelegramHelper');
 const { enqueueRemoteAttendanceSync } = require('./helpers/remoteSyncQueue');
 
+const TelegramQueue = require('./helpers/telegramQueue');
 const SmsQueue = require('./helpers/smsQueue');
 const { sendSms } = require('./helpers/smsSender');
 
@@ -32,6 +33,10 @@ class DeviceManager extends EventEmitter {
     this.maxHeartbeatInterval = 60000; // 60 sec
 
     this.smsQueue = new SmsQueue(sendSms);
+
+    this.telegramQueue = new TelegramQueue(
+      this.sendTelegramNotification.bind(this)
+    );
 
     this.currentUsers = {};
     this.currentUsersImage = {};
@@ -261,6 +266,124 @@ class DeviceManager extends EventEmitter {
 }
 
 async fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday) {
+  if (!rec.connected || !rec.zk) return [];
+  const logsResult = [];
+  try {
+    const { id: device_id, device_name } = rec.device;
+    const logs = await this.enqueueCommand(ip, () => rec.zk.getAttendances());
+    if (!logs?.data) return [];
+    for (const log of logs.data) {
+      await handleDeviceLogs(log, device_id);
+
+      const dt = new Date(log.recordTime);
+      const ts = dt.getTime();
+
+      if (ts < startOfToday || ts > endOfToday) continue;
+
+      logsResult.push({
+        datetime: dt,
+        deviceUserId: log.deviceUserId,
+        deviceName: device_name,
+        ip,
+        userName: this.currentUsers[log.deviceUserId] || log.deviceUserId,
+        userImage:
+          this.currentUsersImage[log.deviceUserId] ||
+          'assets/media/avatars/blank.png',
+        _ts: ts
+      });
+    }
+
+    return logsResult;
+  } catch (err) {
+    console.error(`[${ip}] ⚠ Attendance fetch failed: ${err.message}`);
+    try {
+      return await this.fetchFallbackDeviceLogs(rec);
+    } catch (fallbackErr) {
+      console.error(`[${ip}] ❌ Fallback failed: ${fallbackErr.message}`);
+      return [];
+    }
+  }
+}
+
+async __next_fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday) {
+  if (!rec.connected || !rec.zk) return [];
+  const logsResult = [];
+  try {
+    const { id: device_id, device_name } = rec.device;
+
+    let logs = await this.enqueueCommand(ip, async () => {
+      try {
+        return await rec.zk.getAttendances();
+      } catch (err) {
+        console.error(`[${ip}] ❌ getAttendances failed: ${err.message}`);
+        throw err; // important
+      }
+    });
+    if (!logs?.data) return [];
+    for (const log of logs.data) {
+      await handleDeviceLogs(log, device_id);
+      const dt = new Date(log.recordTime);
+      const ts = dt.getTime();
+
+      if (ts < startOfToday || ts > endOfToday) continue;
+
+      logsResult.push({
+        datetime: dt,
+        deviceUserId: log.deviceUserId,
+        deviceName: device_name,
+        ip,
+        userName: this.currentUsers[log.deviceUserId] || log.deviceUserId,
+        userImage:
+          this.currentUsersImage[log.deviceUserId] ||
+          'assets/media/avatars/blank.png',
+        _ts: ts
+      });
+    }
+
+    return logsResult;
+  } catch (err) {
+    console.error(`[${ip}] ⚠ Attendance fetch failed: ${err.message}`);
+
+    try {
+      console.log(`[${ip}] 🔁 Retrying getAttendances...`);
+      const retryLogs = await this.enqueueCommand(ip, () =>
+        rec.zk.getAttendances()
+      );
+
+      if (!retryLogs?.data) return [];
+
+      const { id: device_id, device_name } = rec.device;
+      const retryResult = [];
+
+      for (const log of retryLogs.data) {
+        await handleDeviceLogs(log, device_id);
+
+        const dt = new Date(log.recordTime);
+        const ts = dt.getTime();
+
+        if (ts < startOfToday || ts > endOfToday) continue;
+
+        retryResult.push({
+          datetime: dt,
+          deviceUserId: log.deviceUserId,
+          deviceName: device_name,
+          ip,
+          userName: this.currentUsers[log.deviceUserId] || log.deviceUserId,
+          userImage:
+            this.currentUsersImage[log.deviceUserId] ||
+            'assets/media/avatars/blank.png',
+          _ts: ts
+        });
+      }
+
+      return retryResult;
+    } catch (_) {
+      return await this.fetchFallbackDeviceLogs(rec);
+    }
+  }
+}
+
+async ___fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday) {
     if (!rec.connected || !rec.zk) return [];
 
     const logsResult = [];
@@ -268,9 +391,17 @@ async fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday) {
     try {
         const { id: device_id, device_name } = rec.device;
 
-        let logs = await this.enqueueCommand(ip, () =>
+        /*** let logs = await this.enqueueCommand(ip, () =>
             rec.zk.getAttendances()
-        );
+        ); ***/
+        let logs = await this.enqueueCommand(ip, async () => {
+          try {
+            return await rec.zk.getAttendances();
+          } catch (err) {
+            console.error(`[${ip}] ❌ Trapped inside queue:`, err.message);
+            return { data: [] }; // 👈 safe fallback
+          }
+        });
 
         if (!logs?.data) return [];
 
@@ -299,6 +430,15 @@ async fetchAttendanceFromDevice(ip, rec, startOfToday, endOfToday) {
     } catch (err) {
         console.error(`[${ip}] ⚠ Attendance fetch failed: ${err.message}`);
 
+        // optional retry before fallback
+        try {
+          console.log(`[${ip}] 🔁 Retrying getAttendances...`);
+          const retryLogs = await this.enqueueCommand(ip, () =>
+            rec.zk.getAttendances()
+          );
+          return retryLogs?.data || [];
+        } catch (_) {}
+
         return await this.fetchFallbackDeviceLogs(rec);
     }
 }
@@ -308,6 +448,7 @@ async fetchFallbackDeviceLogs(rec) {
         const { id, device_name } = rec.device;
         const today = moment().format('YYYY-MM-DD');
         const deviceLogs = await getCurrentAttendanceLogs(today, id);
+        console.log("device logs fetched:", deviceLogs);
         if (!deviceLogs?.length) return [];
 
         return deviceLogs.map(log => {
@@ -461,6 +602,72 @@ async ___notWorking_startRealtime(rec, ip) {
   async processRealtimeLog(data, rec, ip) {
     try {
       const response = await handleRealtimeLog(data, rec.device.id);
+      if (!response?.success) {
+        console.warn(
+          `[${ip}] ⚠️ Failed to insert attendance log: ${response?.message}`
+        );
+        return;
+      }
+
+      const dt = new Date(data.attTime);
+      const payload = {
+        ip,
+        deviceName: rec.device.device_name,
+        deviceUserId: data.userId,
+        datetime: dt,
+        userName: this.currentUsers[data.userId] || data.userId,
+        userImage: this.currentUsersImage[data.userId] || 'assets/media/avatars/blank.png',
+        _ts: dt.getTime()
+      };
+
+      this.realtimeBuffer.push(payload);
+
+      const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
+      const chatId = this.currentUsersChatId[data.userId] || null;
+
+      if (chatId) {
+        this.telegramQueue.enqueue({ chatId, data: payload })
+          .then((telegramSent) => {
+            if (telegramSent === false) {
+              if (smsMobileNo) {
+                this.sendSmsQueueNotification(smsMobileNo, payload);
+              } else {
+                console.warn(
+                  `[${ip}] Telegram failed and no SMS number found for user ${payload.userName}`
+                );
+              }
+            } else {
+              console.log(
+                `[${ip}] Telegram notification sent successfully for user ${payload.userName}`
+              );
+            }
+          })
+          .catch((err) => {
+            console.error(`[${ip}] Telegram queue error: ${err.message}`);
+            if (smsMobileNo) {
+              this.sendSmsQueueNotification(smsMobileNo, payload);
+            }
+          });
+      } else if (smsMobileNo) {
+        this.sendSmsQueueNotification(smsMobileNo, payload);
+      }
+
+      enqueueRemoteAttendanceSync(data, rec.device.id)
+        .then((remoteResponse) => {
+          console.log(`[${ip}] remote response:`, remoteResponse);
+        })
+        .catch((err) => {
+          console.error(`[${ip}] Remote sync queue error: ${err.message}`);
+        });
+
+    } catch (err) {
+      console.error(`[${ip}] ⚠️ Failed to insert attendance log: ${err.message}`);
+    }
+  }
+
+  async __processRealtimeLog(data, rec, ip) {
+    try {
+      const response = await handleRealtimeLog(data, rec.device.id);
       if (response?.success) {
         const dt = new Date(data.attTime); // ⚡ Use Date
         const payload = {
@@ -477,12 +684,41 @@ async ___notWorking_startRealtime(rec, ip) {
 
         const smsMobileNo = this.currentUsersMobileNo[data.userId] || null;
         const chatId = this.currentUsersChatId[data.userId] || null;
-        const telegramSent = await this.sendTelegramNotification(chatId, payload);
+
+        if (chatId) {
+          this.telegramQueue.enqueue({ chatId, data: payload })
+            .then((telegramSent) => {
+              if (telegramSent === false) {
+                if (smsMobileNo) {
+                  this.sendSmsQueueNotification(smsMobileNo, payload);
+                } else {
+                  console.warn(
+                    `[${ip}] Telegram failed and no SMS number found for user ${payload.userName}`
+                  );
+                }
+              } else {
+                console.log(
+                  `[${ip}] Telegram notification sent successfully for user ${payload.userName}`
+                );
+              }
+            })
+            .catch((err) => {
+              console.error(`[${ip}] Telegram queue error: ${err.message}`);
+              if (smsMobileNo) {
+                this.sendSmsQueueNotification(smsMobileNo, payload);
+              }
+            });
+        } else if (smsMobileNo) {
+          // No Telegram chat ID, go straight to SMS
+          this.sendSmsQueueNotification(smsMobileNo, payload);
+        }
+        
+        /*** const telegramSent = await this.sendTelegramNotification(chatId, payload);
         if(telegramSent == false && smsMobileNo){
           this.sendSmsQueueNotification(smsMobileNo, payload);
         }else{
           console.log(`[${ip}] Telegram notification sent successfully for user ${payload.userName}`);
-        }
+        } ***/
 
         enqueueRemoteAttendanceSync(data, rec.device.id)
           .then((remoteResponse) => {
@@ -506,7 +742,7 @@ async ___notWorking_startRealtime(rec, ip) {
       const formattedDate = moment(data.datetime).format('LLLL');
       const smsPayload = {
         to: mobileno,
-        message: `This is a test message! Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard. GC&C Cares`,
+        message: `Good Day! Hello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard. GC&C Cares`,
       };
       this.smsQueue.enqueue(smsPayload);
     }else{
@@ -515,6 +751,18 @@ async ___notWorking_startRealtime(rec, ip) {
   }
 
   async sendTelegramNotification(chatId, data) {
+    if (!chatId) return false;
+    const formattedDate = moment(data.datetime).format('LLLL');
+    const message = `<b>Good Day!</b>\n\nHello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.\nGC&C Cares`;
+    const response = await sendTelegramMessage(telegramBotToken, chatId, message);
+    if (!response.ok) {
+      console.warn('[Telegram] Failed:', response.message, response.error);
+    }
+
+    return response.ok;
+  }
+
+  async ___sendTelegramNotification(chatId, data) {
     if(chatId){
       const formattedDate = moment(data.datetime).format('LLLL');
       const message = `<b>This is a test message!</b>\n\nHello ${data.userName}, you have an attendance record on ${formattedDate}. This is an automated message. Please disregard.\nGC&C Cares`;
