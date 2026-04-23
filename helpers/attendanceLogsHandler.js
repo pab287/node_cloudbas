@@ -99,7 +99,6 @@ const sendDeviceLogs = async ({ deviceName, payload, remoteUrl }) => {
       }
     );
 
-    console.log("response: ", response);
     console.log(`Logs sent successfully for ${deviceName}`);
     return response.data;
   } catch (error) {
