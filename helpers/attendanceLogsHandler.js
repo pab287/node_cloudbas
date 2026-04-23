@@ -86,7 +86,7 @@ const sendDeviceLogs = async ({ deviceName, payload, remoteUrl }) => {
   try {
     const response = await axios.post(
       remoteUrl,
-      qs.stringify({
+      new URLSearchParams({
         devicename: deviceName,
         data: JSON.stringify(payload)
       }),

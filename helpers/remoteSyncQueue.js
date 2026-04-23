@@ -61,38 +61,43 @@ const sendRemoteAttendance = async (data, deviceId) => {
 
   const { localLog, remotePayload } = buildSyncPayload(data, deviceId);
 
-  const response = await axios.post(
-    REMOTE_ATT_SYNC,
-    qs.stringify(remotePayload),
-    {
-      timeout: REQUEST_TIMEOUT,
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
+  try {
+    const response = await axios.post(
+      REMOTE_ATT_SYNC,
+      new URLSearchParams(remotePayload),
+      {
+        timeout: REQUEST_TIMEOUT,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       }
-    }
-  );
-
-  const ok =
-    response &&
-    response.status >= 200 &&
-    response.status < 300 &&
-    response.data;
-
-  if (!ok) {
-    throw new Error('Remote server returned invalid response');
-  }
-
-  const updateResult = await updateAttendanceLogSent(localLog);
-
-  if (!updateResult.success) {
-    console.warn(
-      '[remoteSyncQueue] Remote sent, but local is_sent update failed:',
-      updateResult.message
     );
-  }
 
-  return response.data;
+    if (!response || response.status < 200 || response.status >= 300) {
+      throw new Error('Remote server returned invalid response');
+    }
+
+    const updateResult = await updateAttendanceLogSent(localLog);
+
+    if (!updateResult.success) {
+      console.warn(
+        '[remoteSyncQueue] Remote sent, but local is_sent update failed:',
+        updateResult.message
+      );
+    }
+
+    return response.data;
+
+  } catch (err) {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      throw new Error('Remote server is unreachable');
+    }
+    if (err.code === 'ECONNABORTED') {
+      throw new Error('Request timed out');
+    }
+    throw err;
+  }
 };
 
 const processQueue = async () => {
