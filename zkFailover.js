@@ -20,6 +20,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const DeviceManager = require('./deviceManager');
+const { getActiveDeviceLogs } = require('./dbrecord');
 const { startAllCrons } = require('./helpers/cronServiceHelper');
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +51,27 @@ const ATTPORT = process.env.ZK_PORT ?? '3421';
 app.use(express.static('public'));
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+app.get('/devicelogs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'devicelogs.html'));
+});
+app.get('/api/attendancelogs', async (req, res) => {
+  try {
+      const data = await getActiveDeviceLogs();
+      res.json(data);
+  } catch (err) {
+      res.status(500).json({ error: err.message });
+  }
+});
+app.get('/attendancelogs.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`
+      async function loadAttendanceLogs() {
+          const response = await fetch('/api/attendancelogs');
+          const data = await response.json();
+          return data;
+      }
+  `);
 });
 
 let deviceManager = null;

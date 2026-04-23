@@ -1,7 +1,6 @@
 const socket = io();
 const attendanceList = document.getElementById('attendance-list');
-const searchInput = document.getElementById('attendance-search');
-const renderedLogs = new Map();
+const renderedLogs = new Map(); 
 
 function getLogKey(log) {
   const time = typeof log.datetime === 'string'
@@ -26,15 +25,6 @@ function cleanupRenderedLogs() {
   }
 }
 
-function applySearchFilter() {
-  const query = (searchInput?.value || '').trim().toLowerCase();
-  const cards = attendanceList.querySelectorAll('.card');
-
-  cards.forEach(card => {
-    const searchText = (card.dataset.search || '').toLowerCase();
-    card.style.display = searchText.includes(query) ? '' : 'none';
-  });
-}
 
 function renderCard(log, { prepend = false, highlight = false } = {}) {
   if (highlight) {
@@ -42,6 +32,7 @@ function renderCard(log, { prepend = false, highlight = false } = {}) {
     if (prev) prev.classList.remove('highlight');
   }
 
+    // ✅ Format datetime to AM/PM
   const formattedDateTime = new Date(log.datetime).toLocaleString('en-US', {
     year: 'numeric',
     month: '2-digit',
@@ -54,16 +45,6 @@ function renderCard(log, { prepend = false, highlight = false } = {}) {
 
   const card = document.createElement('div');
   card.className = 'card';
-
-  const searchBlob = [
-    log.userName || '',
-    log.deviceUserId || '',
-    log.ip || '',
-    log.deviceName || '',
-    formattedDateTime
-  ].join(' ').toLowerCase();
-
-  card.dataset.search = searchBlob;
 
   card.innerHTML = `
     <div class="card-left">
@@ -94,12 +75,6 @@ function renderCard(log, { prepend = false, highlight = false } = {}) {
     card.classList.add('highlight');
     setTimeout(() => card.classList.remove('highlight'), 3000);
   }
-
-  applySearchFilter();
-}
-
-if (searchInput) {
-  searchInput.addEventListener('input', applySearchFilter);
 }
 
 // Historical attendance
@@ -109,10 +84,9 @@ socket.on('attendanceLogs', (logs) => {
     const key = getLogKey(log);
     if (renderedLogs.has(key)) return;
     renderedLogs.set(key, Date.now());
-    renderCard(log, { prepend: true });
+    renderCard(log, { prepend: true })
   });
   cleanupRenderedLogs();
-  applySearchFilter();
 });
 
 // Realtime attendance
@@ -135,7 +109,7 @@ socket.on('disconnect', () => {
 const deviceStatusContainer = document.getElementById('device-status');
 const devices = new Map();
 
-socket.on('deviceStatus', (device) => {
+socket.on("deviceStatus", (device) => {
   console.log(device);
   devices.set(device.ip, device);
   renderDeviceStatus();
@@ -152,6 +126,7 @@ function renderDeviceStatus() {
   deviceStatusContainer.innerHTML = "";
 
   devices.forEach(dev => {
+
     const card = document.createElement("div");
     card.classList.add("device-card");
 
@@ -165,14 +140,14 @@ function renderDeviceStatus() {
       statusText = "Online";
       iconColor = "text-success";
       bgColor = "bg-success";
-    }
+    } 
     else if (dev.status === "offline") {
       statusClass = "status-offline";
       statusText = "Offline";
       iconColor = "text-muted";
       bgColor = "bg-muted";
       card.classList.add("device-offline-card");
-    }
+    } 
     else if (dev.status === "reconnecting") {
       statusClass = "status-reconnecting";
       statusText = "Reconnecting";
@@ -196,12 +171,3 @@ function renderDeviceStatus() {
     deviceStatusContainer.appendChild(card);
   });
 }
-
-window.addEventListener('scroll', () => {
-    const header = document.querySelector('.header');
-    if (window.scrollY > 10) {
-      header.classList.add('scrolled');
-    } else {
-      header.classList.remove('scrolled');
-    }
-});

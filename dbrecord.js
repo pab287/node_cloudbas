@@ -351,4 +351,91 @@ const getCurrentAttendanceLogs = async (date, deviceId = null) => {
     });
   };
 
-module.exports = { getActiveDevices, getCurrentUsers, insertAttendanceLogs, getCurrentAttendanceLogs, storeSyncedEmployeeRecords, updateAttendanceLogSent };
+  const getActiveDeviceLogs = async () => {
+    return new Promise((resolve, reject) => {
+        pool.getConnection((err, connection) => {
+
+            if (err) {
+                const errorMessage = {
+                    'PROTOCOL_CONNECTION_LOST': 'Database connection was closed.',
+                    'ER_CON_COUNT_ERROR': 'Database has too many connections.',
+                    'ECONNREFUSED': 'Database connection was refused.'
+                }[err.code] || 'Unknown database connection error.';
+
+                return reject(new Error(errorMessage));
+            }
+
+            const sql = `
+                SELECT 
+                    al.id AS attendance_id,
+                    e.employee_id,
+                    al.biometricno,
+                    al.verify_method,
+                    al.datetime,
+                    
+                    -- Display format
+                    UPPER(DATE_FORMAT(al.datetime, '%b %d, %Y %h:%i %p')) AS formatted_date,
+                    DATE_FORMAT(al.datetime, '%h:%i %p') AS formatted_time,
+                    
+                    -- Group by: YYYYMMDD
+                    DATE_FORMAT(al.datetime, '%Y%m%d') AS group_date,
+
+                    -- Optional date
+                    DATE_FORMAT(al.datetime, '%Y/%m/%d') AS temp_date,
+                    
+                    d.device_name,
+
+                    -- Clean Employee Name: FIRST M. LAST SUFFIX
+                    IFNULL(e.display_alias, TRIM(UPPER(
+                        CONCAT(
+                            e.firstname,
+                            CASE
+                                WHEN e.middlename IS NOT NULL 
+                                  AND e.middlename NOT IN ('N/A', 'NONE', '')
+                                THEN CONCAT(' ', LEFT(e.middlename, 1), '.')
+                                ELSE ''
+                            END,
+                            ' ',
+                            e.lastname,
+                            CASE
+                                WHEN e.suffix IS NOT NULL 
+                                  AND e.suffix NOT IN ('N/A', 'NONE', '')
+                                THEN CONCAT(' ', e.suffix)
+                                ELSE ''
+                            END
+                        )
+                    ))) AS employee_name
+
+                FROM attendance_logs al
+                LEFT JOIN employees e 
+                    ON al.biometricno = e.biometricno
+                LEFT JOIN devices d 
+                    ON al.device_id = d.id
+                WHERE 
+                    al.datetime BETWEEN DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND NOW()
+                GROUP BY al.datetime, e.employee_id
+                ORDER BY DATE(al.datetime) DESC, TRIM(e.lastname) ASC
+            `;
+
+            connection.query(sql, (err, results) => {
+                connection.release();
+
+                if (err) {
+                    console.error('Query Error:', err);
+                    return reject(new Error('Query execution failed.'));
+                }
+
+                resolve(results);
+            });
+        });
+    });
+  };
+
+module.exports = { getActiveDevices,
+  getCurrentUsers,
+  insertAttendanceLogs,
+  getCurrentAttendanceLogs,
+  storeSyncedEmployeeRecords,
+  updateAttendanceLogSent,
+  getActiveDeviceLogs
+};

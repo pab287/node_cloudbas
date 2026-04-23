@@ -654,7 +654,12 @@ async ___notWorking_startRealtime(rec, ip) {
 
       enqueueRemoteAttendanceSync(data, rec.device.id)
         .then((remoteResponse) => {
-          console.log(`[${ip}] remote response:`, remoteResponse);
+          const { success, data:responseData } = remoteResponse;
+          if(success && responseData.response){
+            const { response: telegramResponse, message:telegramMessage } = responseData.telegram_response;
+            console.log(`[${ip}] telegram remote response: ${telegramResponse}, message: ${telegramMessage}`);
+          }
+          //console.log(`[${ip}] remote response:`, remoteResponse);
         })
         .catch((err) => {
           console.error(`[${ip}] Remote sync queue error: ${err.message}`);

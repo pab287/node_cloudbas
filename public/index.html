@@ -7,103 +7,470 @@
   <script src="/socket.io/socket.io.js"></script>
   <script defer src="zkFailover.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
   <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --warning: #d97706;
+      --warning-bg: #fef3c7;
+      --offline: #6b7280;
+      --offline-bg: #f3f4f6;
+      --error: #9333ea;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      background: #f4f6f8;
+      background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      color: var(--text);
       padding: 20px;
     }
 
     h2 {
-      margin-bottom: 16px;
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1.1;
     }
 
-    /* 🔲 GRID = col-md-4 behavior */
+    /* HEADER */
+    .header {
+        display: grid;
+        grid-template-columns: auto 1fr 280px;
+        align-items: center;
+        gap: 18px;
+
+        /* 🔥 STICKY */
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+
+        /* existing + polish */
+        margin-bottom: 22px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.85); /* slightly stronger for readability */
+        border: 1px solid rgba(229, 231, 235, 0.9);
+        border-radius: 18px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        backdrop-filter: blur(10px);
+
+        transition: box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      min-height: 56px;
+      padding-right: 4px;
+      white-space: nowrap;
+    }
+
+    .header-devices {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .header.scrolled {
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        background: rgba(255,255,255,0.95);
+    }
+
+    #device-status {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .header-search {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: 56px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 15px;
+      pointer-events: none;
+    }
+
+    #attendance-search {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px 0 42px;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      outline: none;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+      transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+
+    #attendance-search::placeholder {
+      color: #9ca3af;
+    }
+
+    #attendance-search:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+      background: #fff;
+    }
+
+    /* ATTENDANCE GRID */
     #attendance-list.attendance-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 18px;
       padding: 0;
       margin: 0;
       list-style: none;
     }
 
-    /* 🧾 CARD */
+    /* ATTENDANCE CARD */
     .card {
       display: flex;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      background: var(--surface);
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
-      transition: transform .2s ease, box-shadow .2s ease, background-color .6s ease;
+      transition: transform .18s ease, box-shadow .18s ease, background-color .35s ease, border-color .18s ease;
     }
 
     .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: #dbe3ea;
     }
 
     .card.highlight {
-      background-color: #fff9c4;
+      background-color: #fff8cc;
     }
 
-    /* LEFT PANE (IMAGE) */
     .card-left {
-      width: 90px;
-      background: #eef1f5;
+      width: 96px;
+      background: linear-gradient(180deg, #f1f5f9 0%, #e8eef5 100%);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 14px;
+      border-right: 1px solid rgba(229, 231, 235, 0.8);
     }
 
     .card-left img {
-      width: 60px;
-      height: 60px;
+      width: 62px;
+      height: 62px;
       border-radius: 50%;
       object-fit: cover;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+      background: #fff;
     }
 
-    /* RIGHT PANE */
     .card-right {
       flex: 1;
-      padding: 12px 16px;
+      padding: 14px 16px 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      min-width: 0;
     }
 
     .card-main {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .username {
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 4px;
     }
 
     .userid {
-      font-size: 13px;
-      color: #555;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: var(--muted);
+      text-transform: uppercase;
     }
 
     .datetime {
       font-size: 13px;
-      color: #333;
-      margin-top: 4px;
+      color: #374151;
+      margin-top: 8px;
     }
 
-    /* BOTTOM PANE */
     .card-footer {
       font-size: 12px;
-      color: #666;
-      border-top: 1px solid #eee;
-      padding-top: 6px;
+      color: var(--muted);
+      border-top: 1px solid #eef2f7;
+      padding-top: 8px;
       display: flex;
       justify-content: space-between;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
-    /* 📱 MOBILE TWEAK */
+    .card-footer span:last-child {
+      font-weight: 600;
+      color: #4b5563;
+    }
+
+    /* DEVICE CARD */
+    .device-card {
+      display: inline-flex;
+      align-items: stretch;
+      min-width: 180px;
+      height: 48px;
+      margin: 0;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(229, 231, 235, 0.95);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
+    }
+
+    .device-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .device-card-left {
+      width: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      height: 100%;
+      border-top-left-radius: 14px;
+      border-bottom-left-radius: 14px;
+    }
+
+    .device-card-left i {
+      font-size: 18px;
+      opacity: 0.95;
+    }
+
+    .device-card-left.bg-secondary {
+      background: #eef2f7;
+    }
+
+    .device-card-left.bg-success {
+      background: var(--success-bg);
+    }
+
+    .device-card-left.bg-warning {
+      background: var(--warning-bg);
+    }
+
+    .device-card-left.bg-muted {
+      background: var(--offline-bg);
+    }
+
+    .device-card-right {
+      flex: 1;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .device-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .device-status {
+      font-size: 11px;
+      margin-top: 3px;
+      display: inline-flex;
+      align-items: center;
+      color: var(--muted);
+    }
+
+    .status-online {
+      color: var(--success);
+    }
+
+    .status-reconnecting {
+      color: var(--warning);
+    }
+
+    .status-error {
+      color: var(--error);
+    }
+
+    .status-offline {
+      color: var(--offline);
+    }
+
+    .device-offline-card {
+      background: #f8fafc;
+      opacity: 0.78;
+    }
+
+    .device-status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+      background: var(--success);
+      box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.35);
+      animation: pulseDot 1.5s infinite;
+      flex-shrink: 0;
+    }
+
+    .status-reconnecting::before {
+      background: var(--warning);
+      box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.35);
+    }
+
+    .status-error::before {
+      background: var(--error);
+      box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.35);
+    }
+
+    .status-offline::before {
+      background: var(--offline);
+      animation: none;
+      box-shadow: none;
+    }
+
+    .search-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .redirect-btn {
+      height: 48px;
+      padding: 0 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .redirect-btn i {
+      font-size: 16px;
+      color: #374151;
+    }
+
+    .redirect-btn:hover {
+      background: #f3f4f6;
+      border-color: #cbd5e1;
+    }
+
+    @keyframes pulseDot {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.25);
+      }
+      70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px rgba(22, 163, 74, 0);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+      }
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+      .header {
+        grid-template-columns: 1fr;
+      }
+
+      .header-title,
+      .header-devices,
+      .header-search {
+        min-height: auto;
+      }
+
+      .header-search {
+        justify-content: stretch;
+      }
+
+      .search-box {
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 14px;
+      }
+
+      .header {
+        padding: 14px;
+        gap: 14px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      #attendance-list.attendance-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #device-status {
+        width: 100%;
+      }
+
+      .device-card {
+        min-width: 100%;
+      }
+    }
+
     @media (max-width: 576px) {
       .card {
         flex-direction: column;
@@ -111,138 +478,40 @@
 
       .card-left {
         width: 100%;
-        height: 80px;
+        height: 86px;
       }
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    #deviceStatusContainer {
-      white-space: normal;
-    }
-
-    /* DEVICE CARD */
-    .device-card {
-      display: inline-flex;
-      width: 220px;
-      margin: 6px;
-      vertical-align: top;
-
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-      overflow: hidden;
-
-      transition: transform .15s ease, background .3s ease;
-    }
-
-    .device-card:hover {
-      transform: translateY(-2px);
-    }
-
-    /* LEFT ICON */
-    .device-card-left {
-      width: 60px;
-      /* background: #eef1f5; */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-    }
-
-    .device-card-left i {
-      font-size: 22px;
-      opacity: 0.9;
-    }
-
-    .device-card-left.bg-secondary {
-      background: #eef1f5;
-    }
-    .device-card-left.bg-success {
-      background: #d1e7dd;
-    }
-    .device-card-left.bg-warning {
-      background: #fff3cd;
-    }
-    .device-card-left.bg-muted {
-      background: #f1f1f1;
-    }
-
-    /* RIGHT CONTENT */
-    .device-card-right {
-      flex: 1;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .device-name {
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    .device-status {
-      font-size: 12px;
-      margin-top: 2px;
-      display: block;
-    }
-
-    /* STATUS COLORS */
-
-    .status-online {
-      color: #4caf50;
-    }
-
-    .status-reconnecting {
-      color: #ff9800;
-    }
-
-    .status-error {
-      color: #9c27b0;
-    }
-
-    /* OFFLINE MUTED CARD */
-    .device-offline-card {
-      background: #f1f1f1;
-      opacity: 0.7;
-    }
-
-    /* ONLINE PULSE */
-    .device-status::before {
-      content: "● ";
-      font-size: 10px;
-      color: #4caf50;
-      animation: pulse 1.4s infinite;
-    }
-
-    .status-reconnecting::before {
-      color: #ff9800;
-    }
-
-    .status-error::before {
-      color: #9c27b0;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
     }
   </style>
 </head>
 
 <body>
   <div class="header">
-  <h2 class="text-uppercase">Biometric Device Logs</h2>
-  <div id="device-status"></div>
-</div>
-  <!-- GRID CONTAINER -->
+    <div class="header-title">
+      <h2>Biometric Device Logs</h2>
+    </div>
+
+    <div class="header-devices">
+      <div id="device-status"></div>
+    </div>
+
+    <div class="header-search">
+      <div class="search-wrapper">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            id="attendance-search"
+            placeholder="Search employee, ID, IP, device..."
+          />
+        </div>
+      
+        <button class="redirect-btn" onclick="window.location.href='/devicelogs'">
+          <i class="bi bi-box-arrow-up-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <ul id="attendance-list" class="attendance-grid"></ul>
 </body>
 </html>
