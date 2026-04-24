@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { syncRemoteEmployeeRecords } = require('./helpers/syncEmployeeRecords');
 (async () => {
     try {
@@ -10,15 +11,15 @@ const { syncRemoteEmployeeRecords } = require('./helpers/syncEmployeeRecords');
     }
 })();
 
+//const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN ?? null;
+//const telegramChatId = process.env.TELEGRAM_CHAT_ID ?? null;
 /*** const { sendTelegramMessage } = require('./helpers/sendTelegramHelper');
 (async () => {
-    const chatId = '1421640013';
-    const botToken = '5980215549:AAFzR0QvoupYMO45Q8HAMXwgRElhmnFc9lQ';
     const tempMessage = `PAUL ANDRE BALAYO
         DateTime: WED, APR 15, 2026 06:00 PM
         Biometric#: 722
         VerifyMethod: TIME OUT
         DeviceName: BIOMETRIC DEVICE - IN05A`;
-    const response = await sendTelegramMessage(botToken, chatId, tempMessage);
+    const response = await sendTelegramMessage(telegramBotToken, telegramChatId, tempMessage);
     console.log(response);
 })(); ***/
