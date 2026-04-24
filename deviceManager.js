@@ -950,8 +950,57 @@ async ___notWorking_startRealtime(rec, ip) {
     return true;
   }
 
-
   async healDevice(ip) {
+    const rec = this.devices.get(ip);
+    if (!rec || rec.reconnecting) return;
+  
+    rec.reconnecting = true;
+    this.emitDeviceStatus(ip, 'reconnecting'); // 👍 emit here instead
+  
+    try {
+      const socket = rec.zk?.zklibTcp?.socket;
+      if (socket && !socket.destroyed) {
+        socket.removeAllListeners();
+        socket.end();
+        socket.destroy();
+      }
+    } catch {}
+  
+    rec.socketBound = false;
+    rec.connected = false;
+    rec.realtimeListening = false;
+  
+    await new Promise(r => setTimeout(r, 3000));
+  
+    try {
+      rec.zk = new this.ZKLib(
+        rec.device.ip,
+        rec.device.port,
+        this.zkTimeoutDuration,
+        this.zkImportDuration
+      );
+  
+      await this.connect(rec.device, true);
+  
+      if (rec.connected) {
+        rec.realtimeListenerBound = false;
+        await this.startRealtime(rec, ip);
+  
+        console.log(`[${ip}] ✅ Device reconnected`);
+        rec.lastSeen = Date.now();
+  
+        this.emitDeviceStatus(ip, 'online'); // ✅ only here
+      }
+  
+    } catch (err) {
+      console.error(`[${ip}] ❌ Device reconnection failed: ${err.message}`);
+      this.emitDeviceStatus(ip, 'offline'); // optional but clearer
+    } finally {
+      rec.reconnecting = false; // 🔑 always reset
+    }
+  }
+  
+  async __oldCode_healDevice(ip) {
     const rec = this.devices.get(ip);
     if (!rec || rec.reconnecting) return;
     rec.reconnecting = true;

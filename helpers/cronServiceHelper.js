@@ -2,6 +2,9 @@ const cron = require('node-cron');
 const { syncRemoteEmployeeRecords } = require('./syncEmployeeRecords');
 const { getDeviceAttendanceLogs } = require('./attendanceLogsHandler');
 
+const { backupAttendance } = require('./backupDeviceLogs');
+const { getActiveDevices } = require('../dbrecord');
+
 let isRunning = false;
 const CRON_CONFIG = { timezone: 'Asia/Manila' };
 
@@ -39,6 +42,15 @@ const runAttendanceSync = async () => {
   }
 };
 
+const getAllDeviceLogs = async () => {
+  const d = await getActiveDevices();
+  d.forEach(device => {
+      const deviceSN = device.sn.toUpperCase();
+      const nDevice = { ip: device.ip_address, port:device.port, sn: deviceSN };
+      backupAttendance(nDevice);
+  });
+};
+
 const startAllCrons = () => {
   console.log('[CRON] All cron jobs initialized');
 
@@ -49,8 +61,11 @@ const startAllCrons = () => {
     try {
       await syncRemoteEmployeeRecords();
       console.log('[CRON] Employee sync completed');
+
+      await getAllDeviceLogs();
+      console.log('[CRON] Backup device logs completed');
     } catch (err) {
-      console.error('[CRON] Employee sync failed:', err);
+      console.error('[CRON] Employee sync and backup device logs failed:', err);
     }
   }, CRON_CONFIG);
 
