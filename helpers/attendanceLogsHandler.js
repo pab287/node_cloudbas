@@ -37,6 +37,45 @@ const handleRealtimeLog = async (data, deviceId) => {
       verify_method: verifyMethod,
     };
 
+    // ✅ WAIT for inserted ID
+    const insertedId = await enqueueLog(logData);
+
+    return {
+      success: true,
+      message: 'Inserted via queue',
+      id: insertedId
+    };
+
+  } catch (err) {
+    console.error('Error in handle realtime log:', err);
+    return { success: false, message: err.message };
+  }
+};
+
+const _oldCode__handleRealtimeLog = async (data, deviceId) => {
+  try {
+    const { datetime, userId, attState, verifyMethod, attTime } = data;
+    const dbDateTime = moment(attTime).format("YYYY-MM-DD HH:mm:ss");
+
+    const logData = {
+      log: JSON.stringify({
+        enrollNumber: userId,
+        attState,
+        verifyMethod,
+        year: datetime.year,
+        month: datetime.month,
+        day: datetime.date,
+        hours: datetime.hour,
+        minutes: datetime.minute,
+        seconds: datetime.second,
+      }),
+      device_id: deviceId,
+      datetime: dbDateTime,
+      biometricno: userId,
+      device_state: attState,
+      verify_method: verifyMethod,
+    };
+
     enqueueLog(logData);
     return { success: true, message: 'Queued for insert' };
   } catch (err) {

@@ -94,6 +94,14 @@ server.listen(ATTPORT, ATTIP, async () => {
     console.error('[Server] ❌ DeviceManager init failed:', err.message);
   }
 
+  deviceManager.on('attendance:realtime', (log) => {
+    io.emit('realtimeAttendance', log);
+  });
+  
+  deviceManager.on('device:status', (statuses) => {
+    io.emit('deviceStatus', statuses);
+  });
+
   io.on('connection', (socket) => {
     console.log('[Socket] Frontend connected:', socket.id);
 
@@ -130,21 +138,6 @@ server.listen(ATTPORT, ATTIP, async () => {
       }
     })();
 
-    // 2️⃣ Realtime attendance
-    const realtimeHandler = (log) => {
-      socket.emit('realtimeAttendance', log);
-    };
-    deviceManager.on('attendance:realtime', realtimeHandler);
-
-    const deviceStatusHandler = (statuses) => {
-      socket.emit('deviceStatus', statuses);
-    };
-    deviceManager.on('device:status', deviceStatusHandler);
-
-    socket.on("deviceStatus", function(data){
-        console.log("Device Status:", data);
-    });
-
     // 3️⃣ Frontend requested attendance (optional, can duplicate)
     socket.on('getAttendanceLogs', async () => {
       try {
@@ -159,8 +152,8 @@ server.listen(ATTPORT, ATTIP, async () => {
     // 4️⃣ Cleanup
     socket.on('disconnect', () => {
       console.log('[Socket] Frontend disconnected:', socket.id);
-      deviceManager.off('attendance:realtime', realtimeHandler);
-      deviceManager.off('device:status', deviceStatusHandler);
+      //deviceManager.off('attendance:realtime', realtimeHandler);
+      //deviceManager.off('device:status', deviceStatusHandler);
     });
   });
 

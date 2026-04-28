@@ -1,6 +1,6 @@
 node_modules
 public/uploads
-buckups
+backups
 server.log
 
 .env

@@ -119,4 +119,4 @@ const sendSms = async function (phoneNumber, message) {
     }
 };
 
-module.exports = { sendSms };
+module.exports = { sendSms, checkPortReachable };

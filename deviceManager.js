@@ -11,7 +11,7 @@ const { enqueueRemoteAttendanceSync } = require('./helpers/remoteSyncQueue');
 
 const TelegramQueue = require('./helpers/telegramQueue');
 const SmsQueue = require('./helpers/smsQueue');
-const { sendSms } = require('./helpers/smsSender');
+const { sendSms, checkPortReachable:checkSmsPortReachable } = require('./helpers/smsSender');
 
 const zkTimeoutDuration = Number.parseInt(process.env.ZKTIMEOUT_DURATION, 10) || 20000;
 const zkImportDuration = Number.parseInt(process.env.ZKINPORT_DURATION, 10) || 30000;
@@ -609,6 +609,9 @@ async ___notWorking_startRealtime(rec, ip) {
         return;
       }
 
+      const realtimeLogId = response.id ?? null;
+      console.log(`Insert Attendane Logs Id: ${realtimeLogId}`);
+
       const dt = new Date(data.attTime);
       const payload = {
         ip,
@@ -744,6 +747,17 @@ async ___notWorking_startRealtime(rec, ip) {
 
   async sendSmsQueueNotification(mobileno, data) {
     if(mobileno){
+      const smsIp = process.env.SMS_IP ?? null;
+      const smsPort = process.env.SMS_PORT ?? null;
+
+      // ✅ Check gateway BEFORE enqueue
+      const reachable = smsIp && smsPort ? await checkSmsPortReachable(smsIp, smsPort) : null;
+
+      if (!reachable) {
+        console.error(`[SMS] Gateway ${smsIp}:${smsPort} not reachable. Skipping enqueue.`);
+        return false;
+      }
+
       const formattedDate = moment(data.datetime).format('LLLL');
       const smsPayload = {
         to: mobileno,

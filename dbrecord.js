@@ -83,6 +83,74 @@ const getCurrentUsers = async () => {
 };
 
 const insertAttendanceLogs = async (logs) => {
+  return new Promise((resolve) => {
+    pool.getConnection((err, connection) => {
+      if (err) {
+        return resolve({ success: false, message: err.message });
+      }
+
+      if (!Array.isArray(logs) || logs.length === 0) {
+        connection.release();
+        return resolve({ success: false, message: 'No logs to insert.' });
+      }
+
+      const now = new Date();
+      const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+      const values = logs.map(l => [
+        l.log,
+        l.device_id,
+        l.datetime,
+        l.biometricno,
+        l.device_state,
+        l.verify_method,
+        l.telegram_sent || 3,
+        l.sms_sent || 2,
+        0, // is_sent default
+        batchId,
+        now,
+        now
+      ]);
+
+      const sql = `
+        INSERT IGNORE INTO attendance_logs 
+        (log, device_id, datetime, biometricno, device_state, verify_method, telegram_sent, sms_sent, is_sent, batch_id, created_at, updated_at)
+        VALUES ?
+      `;
+
+      connection.query(sql, [values], (error) => {
+        if (error) {
+          connection.release();
+          return resolve({ success: false, message: error.message });
+        }
+
+        // ✅ Fetch ONLY this batch
+        const selectSql = `
+          SELECT id, log, device_id
+          FROM attendance_logs
+          WHERE batch_id = ?
+        `;
+
+        connection.query(selectSql, [batchId], (err2, rows) => {
+          connection.release();
+
+          if (err2) {
+            return resolve({ success: false, message: err2.message });
+          }
+
+          return resolve({
+            success: true,
+            message: `Processed ${rows.length} logs`,
+            data: rows,
+            batchId
+          });
+        });
+      });
+    });
+  });
+};
+
+const __oldCode_insertAttendanceLogs = async (logs) => {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, connection) => {
         if (err) {

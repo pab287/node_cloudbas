@@ -10,3 +10,111 @@
 [2026-04-24T01:00:13.897Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260424\SNG8251700074-20260424_090013.DAT
 [2026-04-24T01:00:14.721Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260424
 [2026-04-24T01:00:14.746Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260424\BYEL215060053-20260424_090014.DAT
+[2026-04-24T16:00:10.589Z] [192.168.7.16] Starting backup connection...
+[2026-04-24T16:00:10.654Z] [192.168.7.17] Starting backup connection...
+[2026-04-24T16:00:10.655Z] [192.168.7.20] Starting backup connection...
+[2026-04-24T16:00:10.698Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-24T16:00:10.714Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-24T16:00:10.730Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-24T16:00:10.974Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-24T16:00:11.006Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\CLXE22060042-20260425_000010.DAT
+[2026-04-24T16:00:11.301Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-24T16:00:11.322Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\SNG8251700074-20260425_000011.DAT
+[2026-04-24T16:00:12.081Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-24T16:00:12.092Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\BYEL215060053-20260425_000012.DAT
+[2026-04-25T00:00:01.668Z] [192.168.7.16] Starting backup connection...
+[2026-04-25T00:00:01.691Z] [192.168.7.17] Starting backup connection...
+[2026-04-25T00:00:01.692Z] [192.168.7.20] Starting backup connection...
+[2026-04-25T00:00:01.740Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-25T00:00:01.741Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-25T00:00:01.830Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-25T00:00:01.945Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-25T00:00:01.953Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\CLXE22060042-20260425_080001.DAT
+[2026-04-25T00:00:02.355Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-25T00:00:02.374Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\SNG8251700074-20260425_080002.DAT
+[2026-04-25T00:00:03.149Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-25T00:00:03.162Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\BYEL215060053-20260425_080003.DAT
+[2026-04-25T08:00:12.077Z] [192.168.7.16] Starting backup connection...
+[2026-04-25T08:00:12.079Z] [192.168.7.17] Starting backup connection...
+[2026-04-25T08:00:12.080Z] [192.168.7.20] Starting backup connection...
+[2026-04-25T08:00:12.131Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-25T08:00:12.133Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-25T08:00:12.189Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-25T08:00:12.470Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-25T08:00:12.478Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\CLXE22060042-20260425_160012.DAT
+[2026-04-25T08:00:12.810Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-25T08:00:12.828Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\SNG8251700074-20260425_160012.DAT
+[2026-04-25T08:00:13.552Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260425
+[2026-04-25T08:00:13.565Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260425\BYEL215060053-20260425_160013.DAT
+[2026-04-25T16:00:12.117Z] [192.168.7.16] Starting backup connection...
+[2026-04-25T16:00:12.119Z] [192.168.7.17] Starting backup connection...
+[2026-04-25T16:00:12.120Z] [192.168.7.20] Starting backup connection...
+[2026-04-25T16:00:12.164Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-25T16:00:12.183Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-25T16:00:12.267Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-25T16:00:12.440Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260426
+[2026-04-25T16:00:12.474Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260426\CLXE22060042-20260426_000012.DAT
+[2026-04-25T16:00:12.835Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260426
+[2026-04-25T16:00:12.853Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260426\SNG8251700074-20260426_000012.DAT
+[2026-04-25T16:00:13.603Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260426
+[2026-04-25T16:00:13.638Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260426\BYEL215060053-20260426_000013.DAT
+[2026-04-26T08:00:09.109Z] [192.168.7.16] Starting backup connection...
+[2026-04-26T08:00:09.142Z] [192.168.7.17] Starting backup connection...
+[2026-04-26T08:00:09.142Z] [192.168.7.20] Starting backup connection...
+[2026-04-26T08:00:09.183Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-26T08:00:09.204Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-26T08:00:09.367Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-26T08:00:09.487Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260426
+[2026-04-26T08:00:09.512Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260426\CLXE22060042-20260426_160009.DAT
+[2026-04-26T08:00:09.878Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260426
+[2026-04-26T08:00:09.900Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260426\SNG8251700074-20260426_160009.DAT
+[2026-04-26T08:00:10.782Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260426
+[2026-04-26T08:00:10.792Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260426\BYEL215060053-20260426_160010.DAT
+[2026-04-26T16:00:09.369Z] [192.168.7.16] Starting backup connection...
+[2026-04-26T16:00:09.370Z] [192.168.7.17] Starting backup connection...
+[2026-04-26T16:00:09.371Z] [192.168.7.20] Starting backup connection...
+[2026-04-26T16:00:09.420Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-26T16:00:09.423Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-26T16:00:09.571Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-26T16:00:09.711Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260427
+[2026-04-26T16:00:09.759Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260427\CLXE22060042-20260427_000009.DAT
+[2026-04-26T16:00:10.088Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260427
+[2026-04-26T16:00:10.103Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260427\SNG8251700074-20260427_000010.DAT
+[2026-04-26T16:00:10.945Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260427
+[2026-04-26T16:00:10.957Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260427\BYEL215060053-20260427_000010.DAT
+[2026-04-27T00:00:01.157Z] [192.168.7.16] Starting backup connection...
+[2026-04-27T00:00:01.158Z] [192.168.7.17] Starting backup connection...
+[2026-04-27T00:00:01.159Z] [192.168.7.20] Starting backup connection...
+[2026-04-27T00:00:01.207Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-27T00:00:01.223Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-27T00:00:01.250Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-27T00:00:01.526Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260427
+[2026-04-27T00:00:01.532Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260427\CLXE22060042-20260427_080001.DAT
+[2026-04-27T00:00:01.853Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260427
+[2026-04-27T00:00:01.870Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260427\SNG8251700074-20260427_080001.DAT
+[2026-04-27T00:00:02.580Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260427
+[2026-04-27T00:00:02.593Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260427\BYEL215060053-20260427_080002.DAT
+[2026-04-27T16:00:11.325Z] [192.168.7.16] Starting backup connection...
+[2026-04-27T16:00:11.354Z] [192.168.7.17] Starting backup connection...
+[2026-04-27T16:00:11.354Z] [192.168.7.20] Starting backup connection...
+[2026-04-27T16:00:11.397Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-27T16:00:11.400Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-27T16:00:11.507Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-27T16:00:11.667Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260428
+[2026-04-27T16:00:11.705Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260428\CLXE22060042-20260428_000011.DAT
+[2026-04-27T16:00:12.065Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260428
+[2026-04-27T16:00:12.090Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260428\SNG8251700074-20260428_000012.DAT
+[2026-04-27T16:00:12.983Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260428
+[2026-04-27T16:00:13.069Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260428\BYEL215060053-20260428_000012.DAT
+[2026-04-28T00:00:01.851Z] [192.168.7.16] Starting backup connection...
+[2026-04-28T00:00:01.852Z] [192.168.7.17] Starting backup connection...
+[2026-04-28T00:00:01.853Z] [192.168.7.20] Starting backup connection...
+[2026-04-28T00:00:01.904Z] [192.168.7.20] Backup socket connected, Serial number: SNG8251700074
+[2026-04-28T00:00:01.928Z] [192.168.7.17] Backup socket connected, Serial number: CLXE22060042
+[2026-04-28T00:00:02.074Z] [192.168.7.16] Backup socket connected, Serial number: BYEL215060053
+[2026-04-28T00:00:02.225Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260428
+[2026-04-28T00:00:02.233Z] [192.168.7.17] DAT backup saved: C:\laragon\www\zkfailover\backups\20260428\CLXE22060042-20260428_080002.DAT
+[2026-04-28T00:00:02.652Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260428
+[2026-04-28T00:00:02.674Z] [192.168.7.20] DAT backup saved: C:\laragon\www\zkfailover\backups\20260428\SNG8251700074-20260428_080002.DAT
+[2026-04-28T00:00:03.778Z] Folder and sub-folder C:\laragon\www\zkfailover\backups\20260428
+[2026-04-28T00:00:03.790Z] [192.168.7.16] DAT backup saved: C:\laragon\www\zkfailover\backups\20260428\BYEL215060053-20260428_080003.DAT
